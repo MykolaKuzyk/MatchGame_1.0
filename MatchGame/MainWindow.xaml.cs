@@ -15,28 +15,41 @@ using System.Windows.Shapes;
 
 namespace MatchGame
 {
+    using System.Windows.Threading;
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window
     {
+        //Timer definition 
+        DispatcherTimer timer = new DispatcherTimer();
+        int tenthsOfSecondsElapsed =0;
+        int matchesFound =0;
+
         public MainWindow()
         {
             InitializeComponent();
             SetUpGame();
-            GameProcess();
+            timer.Interval = TimeSpan.FromSeconds(.1);
+            timer.Tick += Timer_Tick;
+            
+            
         }
 
-        private void GameProcess()
+        private void Timer_Tick(object sender, EventArgs e)
         {
-            string FirstChoose = "";
-            string SecondChoose= "";
-
-            foreach (TextBlock textBlock in mainGrid.Children.OfType<TextBlock>())
+            tenthsOfSecondsElapsed++;
+            timeTextBlock.Text = (tenthsOfSecondsElapsed / 10F).ToString("0.0s");
+            if (matchesFound == 8)
             {
-                
+                timer.Stop();
+                timeTextBlock.Text += " - Play again ?";
             }
+        }
 
+        public void CountMatches()
+        {
+            matchesL.Content = matchesFound.ToString();
         }
 
         private void SetUpGame()
@@ -56,10 +69,55 @@ namespace MatchGame
             Random random = new Random();
             foreach (TextBlock textBlock in mainGrid.Children.OfType<TextBlock>())
             {
-                int index = random.Next(animalEmoji.Count);
-                string nextEmoji = animalEmoji[index];
-                textBlock.Text = nextEmoji;
-                animalEmoji.RemoveAt(index);
+                if (textBlock.Name != "timeTextBlock")
+                {
+                    int index = random.Next(animalEmoji.Count);
+                    string nextEmoji = animalEmoji[index];
+                    textBlock.Text = nextEmoji;
+                    animalEmoji.RemoveAt(index);
+                }
+           
+            }
+            timer.Start();
+        }
+
+        /* If it`s the first in the pair being clicked,
+         * keep track of which TextBlock was clicked and
+         * make the animal disappear. If it`s the second
+         * one, either make it disappear(if its match) or
+         * bring back the first one (if it`s not).
+         */
+        TextBlock lastTextBlockClicked;
+        bool findingMatch= false;
+        private void textBlock_MouseDown_1(object sender, MouseButtonEventArgs e)
+        {
+            TextBlock textBlock = sender as TextBlock;
+            if (findingMatch == false)
+            {
+                textBlock.Visibility = Visibility.Hidden;
+                lastTextBlockClicked = textBlock;
+                findingMatch = true;
+            }
+            else if (textBlock.Text == lastTextBlockClicked.Text)
+            {
+                matchesFound++;
+                CountMatches();
+                textBlock.Visibility = Visibility.Hidden;
+                findingMatch = false;
+
+            }
+            else
+            {
+                lastTextBlockClicked.Visibility = Visibility.Visible;
+                findingMatch = false;
+            }
+        }
+
+        private void timeTextBlock_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (matchesFound == 8)
+            {
+                SetUpGame();
             }
         }
     }
